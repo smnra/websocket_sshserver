@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shell 仿真器</title>
+    <title>Web Shell</title>
     <style>
         body {
             background-color: #000;
@@ -38,9 +38,10 @@
 </head>
 <body>
 
-<h1>Shell 仿真器</h1>
+<h1>Web Shell</h1>
 <div id="command-line"></div>
 <select id="client-select"></select> <!-- 客户端选择下拉框 -->
+<button id="refreshClients">刷新客户端列表</button> <!-- 刷新客户端列表按钮 -->
 <input id="input" type="text" placeholder="输入命令..." autofocus />
 
 <script>
@@ -99,9 +100,15 @@
         xhr.send();
     }
 
-    // 每隔一段时间更新客户端列表
-    setInterval(updateClientList, 5000); // 每5秒更新一次客户端列表
-    updateClientList(); // 初始加载客户端列表
+    // 页面加载完成后初始化
+    updateClientList();
+
+    // 刷新客户端列表按钮点击事件
+    document.getElementById('refreshClients').addEventListener('click', function() {
+        updateClientList();
+    });
+
+
 
 </script>
 

